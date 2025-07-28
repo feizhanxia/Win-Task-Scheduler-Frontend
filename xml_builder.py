@@ -51,9 +51,9 @@ def minutes_trigger(start: datetime, every: int, unit: str) -> str:
     interval = f"PT{every}{'H' if unit == 'hours' else 'M'}"
     return f"""<TimeTrigger>
   <StartBoundary>{start.isoformat()}</StartBoundary>
+  <Enabled>true</Enabled>
   <Repetition>
     <Interval>{interval}</Interval>
-    <StopAtDurationEnd>false</StopAtDurationEnd>
   </Repetition>
 </TimeTrigger>"""
 
