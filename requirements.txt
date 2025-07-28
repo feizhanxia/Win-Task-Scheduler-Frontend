@@ -1,3 +1,4 @@
 streamlit>=1.10
 croniter
 jinja2
+pyinstaller>=5.0
