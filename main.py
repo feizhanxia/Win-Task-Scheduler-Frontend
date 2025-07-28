@@ -11,12 +11,34 @@ import time
 import webbrowser
 import threading
 from pathlib import Path
+import socket
 
 
-def open_browser():
-    """Open browser after a short delay."""
-    time.sleep(3)  # Wait for server to start
-    webbrowser.open('http://localhost:8501')
+def is_port_in_use(port):
+    """Check if a port is already in use."""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        return s.connect_ex(('localhost', port)) == 0
+
+
+def open_browser_once():
+    """Open browser only once after server starts."""
+    # Wait for server to fully start
+    time.sleep(3)
+    
+    # Check if server is responding
+    max_attempts = 10
+    for _ in range(max_attempts):
+        if is_port_in_use(8501):
+            try:
+                webbrowser.open('http://localhost:8501')
+                print("Browser opened automatically.")
+                break
+            except Exception as e:
+                print(f"Could not open browser automatically: {e}")
+                break
+        time.sleep(1)
+    else:
+        print("Server did not start in time, please open browser manually.")
 
 
 def main():
@@ -36,8 +58,18 @@ def main():
     os.chdir(bundle_dir)
     
     try:
-        # Start browser in a separate thread
-        browser_thread = threading.Thread(target=open_browser)
+        # Check if server is already running
+        if is_port_in_use(8501):
+            print("="*50)
+            print("Streamlit server is already running on port 8501!")
+            print("Please open your browser and go to: http://localhost:8501")
+            print("Or stop the existing server and try again.")
+            print("="*50)
+            input("Press Enter to exit...")
+            return
+        
+        # Start browser in a separate thread (only once)
+        browser_thread = threading.Thread(target=open_browser_once)
         browser_thread.daemon = True
         browser_thread.start()
         
@@ -48,14 +80,15 @@ def main():
             "--server.enableCORS=false", 
             "--server.enableXsrfProtection=false",
             "--browser.gatherUsageStats=false",
-            "--server.port=8501"
+            "--server.port=8501",
+            "--global.developmentMode=false"
         ]
         
         print("="*50)
         print("Windows Task Scheduler Frontend")
         print("="*50)
         print("Starting Streamlit server...")
-        print("The application will open in your browser automatically.")
+        print("Browser will open automatically in a few seconds...")
         print()
         print("If browser doesn't open, go to: http://localhost:8501")
         print()
