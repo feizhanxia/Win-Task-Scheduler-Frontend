@@ -22,9 +22,11 @@ This project provides a Streamlit-based interface to manage Python script tasks 
 To build a standalone EXE with PyInstaller:
 ```bash
 pip install pyinstaller
-pyinstaller --onefile app.py
+# include the templates directory so the XML template is bundled
+pyinstaller --onefile app.py --add-data "templates;templates"
 ```
-The resulting executable will be in the `dist` directory.
+The resulting executable will be in the `dist` directory with the
+`templates` folder packaged alongside the binary.
 
 ## Example XML Template
 See `templates/task_template.xml` for the base schedule task template used for creation.
