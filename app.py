@@ -44,15 +44,47 @@ menu = st.sidebar.selectbox("Menu", ["Tasks", "Create Task"])
 
 if menu == "Tasks":
     st.header("Scheduled Tasks")
+    
+    # 添加调试按钮
+    col1, col2 = st.columns(2)
+    with col1:
+        if st.button("🔄 刷新任务列表"):
+            st.rerun()
+    with col2:
+        if st.button("🔍 调试信息"):
+            st.subheader("调试信息")
+            
+            # 查看所有任务
+            all_tasks = sc.list_all_tasks()
+            if all_tasks.returncode == 0:
+                pytasks_count = all_tasks.stdout.count("\\PyTasks\\")
+                st.write(f"系统中包含 'PyTasks' 的任务数量: {pytasks_count}")
+                
+                if pytasks_count > 0:
+                    st.text("找到的 PyTasks 任务:")
+                    lines = all_tasks.stdout.split('\n')
+                    for line in lines:
+                        if '\\PyTasks\\' in line:
+                            st.text(line.strip())
+            
+            # 检查 PyTasks 文件夹
+            folder_result = sc.query_task_folder()
+            st.write(f"PyTasks 文件夹查询结果: {folder_result.returncode}")
+            if folder_result.stderr:
+                st.text(f"错误信息: {folder_result.stderr}")
+    
     result = sc.query_all_tasks()
     if result.returncode != 0:
         if "找不到指定的文件" in result.stderr or "cannot find" in result.stderr.lower():
             tasks = []
+            st.info("暂无任务或任务文件夹不存在")
         else:
             st.error(f"Failed to query tasks: {result.stderr}")
             tasks = []
     else:
         tasks = parse_tasks_list(result.stdout)
+        if not tasks:
+            st.info("PyTasks 文件夹下暂无任务")
 
     for task in tasks:
         name = task.get("TaskName", "")
@@ -188,15 +220,36 @@ elif menu == "Create Task":
             trigger_xml=trigger_xml,
         )
         xml_content = build_xml(config)
+        
+        # 添加调试信息选项
+        show_debug = st.checkbox("显示调试信息", value=False)
+        if show_debug:
+            st.subheader("生成的 XML 配置")
+            st.code(xml_content, language="xml")
+        
         # Windows `schtasks` requires the XML file to be UTF-16 encoded
         with tempfile.NamedTemporaryFile("w", encoding="utf-16", delete=False, suffix=".xml") as f:
             f.write(xml_content)
             temp_path = Path(f.name)
+        
         res = sc.create_task(temp_path, name)
+        
+        # 清理临时文件
+        try:
+            temp_path.unlink()
+        except:
+            pass
+            
         if res.returncode == 0:
-            st.success("Task created")
+            st.success(f"任务 '{name}' 创建成功！")
+            st.info("请点击上方的 '刷新任务列表' 按钮查看新创建的任务。")
         else:
-            st.error(res.stderr)
+            st.error(f"任务创建失败: {res.stderr}")
+            if show_debug:
+                st.write(f"返回码: {res.returncode}")
+                st.write(f"命令输出: {res.stdout}")
+                
+        # 预览功能
         st.subheader("Next Runs Preview")
         if cron_expr:
             for t in preview_next_runs(cron_expr):

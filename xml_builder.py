@@ -49,70 +49,62 @@ def build_xml(config: TaskConfig) -> str:
 
 def minutes_trigger(start: datetime, every: int, unit: str) -> str:
     interval = f"PT{every}{'H' if unit == 'hours' else 'M'}"
-    return f"""
-<TimeTrigger>
+    return f"""<TimeTrigger>
+  <StartBoundary>{start.isoformat()}</StartBoundary>
   <Repetition>
     <Interval>{interval}</Interval>
     <StopAtDurationEnd>false</StopAtDurationEnd>
   </Repetition>
-  <StartBoundary>{start.isoformat()}</StartBoundary>
-</TimeTrigger>
-"""
+</TimeTrigger>"""
 
 
 def daily_trigger(start: datetime, days: int) -> str:
-    return f"""
-<DailyTrigger>
+    return f"""<CalendarTrigger>
   <StartBoundary>{start.isoformat()}</StartBoundary>
-  <DaysInterval>{days}</DaysInterval>
-</DailyTrigger>
-"""
+  <ScheduleByDay>
+    <DaysInterval>{days}</DaysInterval>
+  </ScheduleByDay>
+</CalendarTrigger>"""
 
 
 def weekly_trigger(start: datetime, weekdays: List[str]) -> str:
     days_xml = ''.join(f'<{day}/>' for day in weekdays)
-    return f"""
-<WeeklyTrigger>
+    return f"""<CalendarTrigger>
   <StartBoundary>{start.isoformat()}</StartBoundary>
   <ScheduleByWeek>
     <DaysOfWeek>{days_xml}</DaysOfWeek>
     <WeeksInterval>1</WeeksInterval>
   </ScheduleByWeek>
-</WeeklyTrigger>
-"""
+</CalendarTrigger>"""
 
 
 def monthly_days_trigger(start: datetime, days: List[int]) -> str:
     days_xml = ''.join(f'<Day>{d}</Day>' for d in days)
-    return f"""
-<MonthlyTrigger>
+    return f"""<CalendarTrigger>
   <StartBoundary>{start.isoformat()}</StartBoundary>
   <ScheduleByMonth>
     <DaysOfMonth>{days_xml}</DaysOfMonth>
     {MONTHS_XML}
   </ScheduleByMonth>
-</MonthlyTrigger>
-"""
+</CalendarTrigger>"""
 
 
 def monthly_last_day_trigger(start: datetime) -> str:
-    return f"""
-<MonthlyTrigger>
+    return f"""<CalendarTrigger>
   <StartBoundary>{start.isoformat()}</StartBoundary>
   <ScheduleByMonth>
-    <RunOnLastDayOfMonth/>
+    <DaysOfMonth><LastDay/></DaysOfMonth>
     {MONTHS_XML}
   </ScheduleByMonth>
-</MonthlyTrigger>
-"""
+</CalendarTrigger>"""
 
 
 def monthly_nth_dow_trigger(start: datetime, week: str, day: str) -> str:
-    return f"""
-<MonthlyDOWTrigger>
+    return f"""<CalendarTrigger>
   <StartBoundary>{start.isoformat()}</StartBoundary>
-  <DaysOfWeek><{day}/></DaysOfWeek>
-  <Weeks><{week}/></Weeks>
-  {MONTHS_XML}
-</MonthlyDOWTrigger>
-"""
+  <ScheduleByMonthDayOfWeek>
+    <DaysOfWeek><{day}/></DaysOfWeek>
+    <Weeks><{week}/></Weeks>
+    {MONTHS_XML}
+  </ScheduleByMonthDayOfWeek>
+</CalendarTrigger>"""
