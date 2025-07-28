@@ -23,7 +23,10 @@ To build a standalone EXE with PyInstaller:
 ```bash
 pip install pyinstaller
 # include the templates directory so the XML template is bundled
-pyinstaller --onefile app.py --add-data "templates;templates"
+# copy Streamlit's metadata so importlib.metadata works when running the EXE
+pyinstaller --onefile app.py \
+  --add-data "templates;templates" \
+  --copy-metadata streamlit
 ```
 The resulting executable will be in the `dist` directory with the
 `templates` folder packaged alongside the binary.
