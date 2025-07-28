@@ -1,0 +1,29 @@
+<Task xmlns="http://schemas.microsoft.com/windows/2004/02/mit/task">
+  <RegistrationInfo>
+    <Date>{{ registration_date }}</Date>
+    <Author>{{ author }}</Author>
+  </RegistrationInfo>
+  <Triggers>
+    {{ triggers }}
+  </Triggers>
+  <Principals>
+    <Principal id="Author">
+      <RunLevel>LeastPrivilege</RunLevel>
+    </Principal>
+  </Principals>
+  <Settings>
+    <MultipleInstancesPolicy>{{ multiple_instances_policy }}</MultipleInstancesPolicy>
+    <StartWhenAvailable>{{ start_when_available }}</StartWhenAvailable>
+    <RestartOnFailure>
+      <Interval>{{ retry_interval }}</Interval>
+      <Count>{{ retry_count }}</Count>
+    </RestartOnFailure>
+  </Settings>
+  <Actions Context="Author">
+    <Exec>
+      <Command>{{ python_path }}</Command>
+      <Arguments>{{ script_path }} {{ args }}</Arguments>
+      <WorkingDirectory>{{ workdir }}</WorkingDirectory>
+    </Exec>
+  </Actions>
+</Task>
