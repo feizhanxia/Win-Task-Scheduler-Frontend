@@ -1,7 +1,7 @@
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, time
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 
 from jinja2 import Environment, FileSystemLoader
 
@@ -9,6 +9,8 @@ TEMPLATE_DIR = Path(__file__).parent / 'templates'
 
 
 env = Environment(loader=FileSystemLoader(str(TEMPLATE_DIR)))
+
+MONTHS_XML = """<Months><January/><February/><March/><April/><May/><June/><July/><August/><September/><October/><November/><December/></Months>"""
 
 
 @dataclass
@@ -43,3 +45,80 @@ def build_xml(config: TaskConfig) -> str:
         retry_count=config.retry_count,
     )
     return xml
+
+
+def minutes_trigger(start: datetime, every: int, unit: str) -> str:
+    interval = f"PT{every}{'H' if unit == 'hours' else 'M'}"
+    return f"""
+<TimeTrigger>
+  <Repetition>
+    <Interval>{interval}</Interval>
+    <StopAtDurationEnd>false</StopAtDurationEnd>
+  </Repetition>
+  <StartBoundary>{start.isoformat()}</StartBoundary>
+  <Enabled>true</Enabled>
+</TimeTrigger>
+"""
+
+
+def daily_trigger(start: datetime, days: int) -> str:
+    return f"""
+<DailyTrigger>
+  <StartBoundary>{start.isoformat()}</StartBoundary>
+  <Enabled>true</Enabled>
+  <DaysInterval>{days}</DaysInterval>
+</DailyTrigger>
+"""
+
+
+def weekly_trigger(start: datetime, weekdays: List[str]) -> str:
+    days_xml = ''.join(f'<{day}/>' for day in weekdays)
+    return f"""
+<WeeklyTrigger>
+  <StartBoundary>{start.isoformat()}</StartBoundary>
+  <Enabled>true</Enabled>
+  <ScheduleByWeek>
+    <DaysOfWeek>{days_xml}</DaysOfWeek>
+    <WeeksInterval>1</WeeksInterval>
+  </ScheduleByWeek>
+</WeeklyTrigger>
+"""
+
+
+def monthly_days_trigger(start: datetime, days: List[int]) -> str:
+    days_xml = ''.join(f'<Day>{d}</Day>' for d in days)
+    return f"""
+<MonthlyTrigger>
+  <StartBoundary>{start.isoformat()}</StartBoundary>
+  <Enabled>true</Enabled>
+  <ScheduleByMonth>
+    <DaysOfMonth>{days_xml}</DaysOfMonth>
+    {MONTHS_XML}
+  </ScheduleByMonth>
+</MonthlyTrigger>
+"""
+
+
+def monthly_last_day_trigger(start: datetime) -> str:
+    return f"""
+<MonthlyTrigger>
+  <StartBoundary>{start.isoformat()}</StartBoundary>
+  <Enabled>true</Enabled>
+  <ScheduleByMonth>
+    <RunOnLastDayOfMonth/>
+    {MONTHS_XML}
+  </ScheduleByMonth>
+</MonthlyTrigger>
+"""
+
+
+def monthly_nth_dow_trigger(start: datetime, week: str, day: str) -> str:
+    return f"""
+<MonthlyDOWTrigger>
+  <StartBoundary>{start.isoformat()}</StartBoundary>
+  <Enabled>true</Enabled>
+  <DaysOfWeek><{day}/></DaysOfWeek>
+  <Weeks><{week}/></Weeks>
+  {MONTHS_XML}
+</MonthlyDOWTrigger>
+"""
