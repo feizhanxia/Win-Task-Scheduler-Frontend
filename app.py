@@ -86,54 +86,65 @@ if menu == "Tasks":
 
 elif menu == "Create Task":
     st.header("Create Task")
+
+    if "trigger_type" not in st.session_state:
+        st.session_state.trigger_type = "Every N minutes"
+
+    st.selectbox(
+        "Trigger Type",
+        [
+            "Every N minutes",
+            "Every N hours",
+            "Daily",
+            "Weekly",
+            "Monthly",
+        ],
+        key="trigger_type",
+    )
+
     with st.form("create_task"):
         name = st.text_input("Task Name")
         python_path = st.text_input("Python Path", value=sys.executable)
         script_path = st.text_input("Script Path")
         args = st.text_input("Arguments")
         workdir = st.text_input("Working Directory", value=str(Path.cwd()))
-        trigger_type = st.selectbox(
-            "Trigger Type",
-            [
-                "Every N minutes",
-                "Every N hours",
-                "Daily",
-                "Weekly",
-                "Monthly",
-            ],
-        )
-        if trigger_type in ("Every N minutes", "Every N hours"):
-            interval = st.number_input("Interval", min_value=1, value=1)
-        if trigger_type == "Daily":
-            daily_time = st.time_input("Time", value=datetime.now().time())
-            day_interval = st.number_input("Every N days", min_value=1, value=1)
-        if trigger_type == "Weekly":
+
+        if st.session_state.trigger_type in ("Every N minutes", "Every N hours"):
+            interval = st.number_input("Interval", min_value=1, value=1, key="interval")
+        if st.session_state.trigger_type == "Daily":
+            daily_time = st.time_input("Time", value=datetime.now().time(), key="daily_time")
+            day_interval = st.number_input("Every N days", min_value=1, value=1, key="day_interval")
+        if st.session_state.trigger_type == "Weekly":
             weekdays = st.multiselect(
                 "Weekdays",
                 ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+                key="weekdays",
             )
-            week_time = st.time_input("Time", value=datetime.now().time())
-        if trigger_type == "Monthly":
-            month_mode = st.selectbox("Mode", ["Specific Days", "Last Day", "Nth Weekday"])
-            month_time = st.time_input("Time", value=datetime.now().time())
+            week_time = st.time_input("Time", value=datetime.now().time(), key="week_time")
+        if st.session_state.trigger_type == "Monthly":
+            month_mode = st.selectbox("Mode", ["Specific Days", "Last Day", "Nth Weekday"], key="month_mode")
+            month_time = st.time_input("Time", value=datetime.now().time(), key="month_time")
             if month_mode == "Specific Days":
-                month_days = st.text_input("Days of Month (e.g. 1,15,31)")
+                month_days = st.text_input("Days of Month (e.g. 1,15,31)", key="month_days")
             elif month_mode == "Nth Weekday":
-                week_no = st.selectbox("Week", ["First", "Second", "Third", "Fourth", "Last"])
+                week_no = st.selectbox("Week", ["First", "Second", "Third", "Fourth", "Last"], key="week_no")
                 week_day = st.selectbox(
                     "Day",
                     ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+                    key="week_day",
                 )
         multiple_policy = st.selectbox(
             "Multiple Instance Policy",
             ["Parallel", "Queue", "IgnoreNew", "StopExisting"],
+            key="multi_policy",
         )
-        start_when_available = st.checkbox("Start When Available", value=True)
-        retry_count = st.number_input("Retry Count", min_value=0, value=3)
-        retry_interval = st.number_input("Retry Interval (minutes)", min_value=1, value=5)
+        start_when_available = st.checkbox("Start When Available", value=True, key="start_when_available")
+        retry_count = st.number_input("Retry Count", min_value=0, value=3, key="retry_count")
+        retry_interval = st.number_input("Retry Interval (minutes)", min_value=1, value=5, key="retry_interval")
         submit = st.form_submit_button("Create")
 
     if submit:
+        trigger_type = st.session_state.trigger_type
         now = datetime.now().replace(second=0, microsecond=0)
         cron_expr = None
         if trigger_type in ("Every N minutes", "Every N hours"):
@@ -177,7 +188,8 @@ elif menu == "Create Task":
             trigger_xml=trigger_xml,
         )
         xml_content = build_xml(config)
-        with tempfile.NamedTemporaryFile("w", delete=False, suffix=".xml") as f:
+        # Windows `schtasks` requires the XML file to be UTF-16 encoded
+        with tempfile.NamedTemporaryFile("w", encoding="utf-16", delete=False, suffix=".xml") as f:
             f.write(xml_content)
             temp_path = Path(f.name)
         res = sc.create_task(temp_path, name)
